@@ -1,0 +1,994 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Costeo Paso a Paso</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&family=Zilla+Slab:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* Concepto: hoja de costos. Papel contable, celdas amarillas para lo que escribe el estudiante (igual que en el Excel),
+   totales con doble raya contable, números en monoespaciada. Resultado en vivo a la derecha en pantallas anchas. */
+:root{
+  --paper:#F1F4F0; --sheet:#FFFFFF; --ink:#14201B; --muted:#546760; --line:#CBD6CF; --line-strong:#98ABA1;
+  --accent:#17694F; --accent-ink:#FFFFFF; --accent-soft:#DDEEE5;
+  --input:#FFF4C2; --input-line:#DCC56A;
+  --warn:#9A4A06; --warn-soft:#FBEBD6; --bad:#A12A2A;
+  --s1:#17694F; --s2:#C08319; --s3:#2F6FA3; --s4:#9A4F6B;
+  --font-display:'Zilla Slab', Georgia, 'Times New Roman', serif;
+  --font-body:'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-num:'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E1411; --sheet:#161E1A; --ink:#E6EEE9; --muted:#9DB0A6; --line:#2A3832; --line-strong:#4B5E54;
+    --accent:#4FC49A; --accent-ink:#08170F; --accent-soft:#17332A;
+    --input:#3A3414; --input-line:#6D6124;
+    --warn:#F2A65E; --warn-soft:#34260F; --bad:#F29090;
+    --s1:#4FC49A; --s2:#E2A94A; --s3:#6FA9DD; --s4:#D68BAA;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1411; --sheet:#161E1A; --ink:#E6EEE9; --muted:#9DB0A6; --line:#2A3832; --line-strong:#4B5E54;
+  --accent:#4FC49A; --accent-ink:#08170F; --accent-soft:#17332A;
+  --input:#3A3414; --input-line:#6D6124;
+  --warn:#F2A65E; --warn-soft:#34260F; --bad:#F29090;
+  --s1:#4FC49A; --s2:#E2A94A; --s3:#6FA9DD; --s4:#D68BAA;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:15px/1.55 var(--font-body);padding-inline:16px;padding-block:28px 120px}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+.wrap{max-width:1140px;margin-inline:auto}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0;font-weight:700}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.top{margin-bottom:22px}
+.kicker{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0}
+h1{font-size:clamp(2rem,1.4rem + 3vw,3.1rem);line-height:1.05;margin:6px 0 10px}
+.lede{max-width:62ch;color:var(--muted);margin:0;font-size:1.05rem}
+
+.guide{background:var(--accent-soft);border:1px solid var(--line-strong);border-radius:4px;margin-bottom:22px}
+.guide summary{cursor:pointer;padding:14px 18px;font-family:var(--font-display);font-weight:700;font-size:1.2rem}
+.guide-body{display:grid;gap:22px;padding:2px 18px 18px;grid-template-columns:minmax(0,1fr)}
+.guide h3{font-size:1.02rem;margin-bottom:8px}
+.guide dl{margin:0}
+.guide dt{font-weight:600}
+.guide dd{margin:0 0 10px;color:var(--ink)}
+.guide ul{margin:0;padding-left:18px}
+.guide li{margin-bottom:7px}
+@media (min-width:820px){.guide-body{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:34px}}
+
+.tabs{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px}
+.tab{border:1px solid var(--line-strong);background:var(--sheet);padding:8px 12px;border-radius:4px;cursor:pointer;max-width:100%;overflow-wrap:anywhere;text-align:left}
+.tab[aria-current="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.tab.add{border-style:dashed;background:transparent;color:var(--accent);font-weight:600}
+.badge{font-size:11px;letter-spacing:.06em;text-transform:uppercase;margin-left:8px;opacity:.85}
+.link{background:none;border:0;color:var(--accent);text-decoration:underline;cursor:pointer;padding:6px 4px}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr);gap:24px}
+.aside{display:none}
+@media (min-width:1100px){
+  .layout{grid-template-columns:minmax(0,1fr) 290px}
+  .aside{display:block;position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);align-self:start}
+  .bar{display:none!important}
+}
+
+.steps{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0 0 16px;padding:0;list-style:none}
+.steps a{color:var(--ink);text-decoration:none;display:inline-flex;gap:7px;align-items:baseline;padding:4px 0;border-bottom:1px solid var(--line-strong)}
+.steps b{font-family:var(--font-display);color:var(--accent);font-size:1.1rem}
+
+.example{background:var(--warn-soft);border:1px solid var(--warn);border-radius:4px;padding:12px 14px;margin-bottom:16px;display:flex;gap:10px 16px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.example p{margin:0;flex:1 1 320px}
+
+.sec{background:var(--sheet);border:1px solid var(--line);border-top:2px solid var(--ink);border-radius:4px;padding:18px 18px 20px;margin-bottom:16px;scroll-margin-top:12px}
+.sec h2{font-size:1.45rem;display:flex;gap:10px;align-items:baseline}
+.sec h2 .n{color:var(--accent);font-size:1.7rem}
+.sec h3{font-size:1.08rem;margin:20px 0 8px}
+.how{margin:8px 0 14px;color:var(--muted);max-width:75ch}
+.how b{color:var(--ink)}
+.hint{margin:8px 0 0;color:var(--muted);font-size:13.5px}
+
+.grid3,.grid4{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:640px){.grid3{grid-template-columns:repeat(3,minmax(0,1fr))}.grid4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:900px){.grid4{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.fld{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fld>span{font-size:13px;color:var(--muted)}
+
+.in{width:100%;min-width:0;min-height:38px;padding:7px 9px;border:1px solid var(--input-line);background:var(--input);color:var(--ink);border-radius:3px}
+.in.num{font-family:var(--font-num);text-align:right}
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+select.in{padding-right:6px}
+
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:4px;overflow:hidden;margin-bottom:12px}
+.seg button{border:0;background:var(--sheet);padding:8px 18px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line-strong)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:600}
+
+.rows{margin-top:4px}
+.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px;padding:14px 0;border-bottom:1px solid var(--line)}
+.row.head{display:none}
+.f{display:flex;flex-direction:column;gap:3px;min-width:0}
+.f::before{content:attr(data-l);font-size:12.5px;color:var(--muted)}
+.f.name,.f.wide{grid-column:1/-1}
+.calc{display:block;min-height:38px;padding:8px 9px;text-align:right;font-family:var(--font-num);font-variant-numeric:tabular-nums;border-bottom:1px dotted var(--line-strong)}
+.x{grid-column:1/-1;justify-self:start;background:none;border:0;color:var(--muted);cursor:pointer;padding:2px 0;text-decoration:underline;font-size:13px}
+.x .ic{display:none}
+.empty{color:var(--muted);padding:14px 0;margin:0;border-bottom:1px solid var(--line)}
+@media (min-width:760px){
+  .row{gap:8px 10px;align-items:center;padding:7px 0}
+  .row.head{display:grid;font-size:12.5px;color:var(--muted);align-items:end;border-bottom:1px solid var(--ink);padding:0 0 6px;line-height:1.25}
+  .f::before{display:none}
+  .f.name,.f.wide{grid-column:auto}
+  .row.mats{grid-template-columns:minmax(0,1.7fr) minmax(0,.8fr) repeat(3,minmax(0,1fr)) minmax(0,.75fr) minmax(0,1.05fr) 30px}
+  .row.mod{grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.1fr) 30px}
+  .row.mes{grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.1fr) minmax(0,1.1fr) 30px}
+  .x{grid-column:auto;justify-self:center;width:30px;height:30px;border:1px solid var(--line);border-radius:3px;text-decoration:none;padding:0}
+  .x .lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .x .ic{display:inline;font-size:18px;line-height:1}
+  .x:hover{color:var(--bad);border-color:var(--bad)}
+}
+
+.btn{border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-weight:600;border-radius:4px;padding:9px 16px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.danger{background:transparent;color:var(--bad);border-color:var(--bad)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn.block{width:100%}
+.add-row{margin-top:12px}
+
+.total{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px 18px;padding:10px 0 8px;margin-top:6px;border-top:1px solid var(--ink);border-bottom:3px double var(--ink);font-weight:600}
+.total .vals{display:flex;gap:6px 22px;flex-wrap:wrap}
+.total output,.k output,.stmt output,.leg output{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+.neg{color:var(--bad)}
+
+.helper{margin-top:16px;border:1px dashed var(--line-strong);border-radius:4px;padding:10px 12px;background:var(--paper)}
+.helper summary{cursor:pointer;font-weight:600;color:var(--accent)}
+.helper .grid4{margin-top:12px}
+.helper .res{display:flex;gap:10px 16px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.helper .res output{font-family:var(--font-num);font-weight:500}
+
+.stmt{width:100%;border-collapse:collapse;margin-top:6px}
+.stmt th{text-align:left;font-weight:400;padding:7px 0;border-bottom:1px dotted var(--line-strong)}
+.stmt td{text-align:right;padding:7px 0;border-bottom:1px dotted var(--line-strong);white-space:nowrap}
+.stmt tr.sub th,.stmt tr.sub td{font-weight:600;border-top:1px solid var(--ink);border-bottom:1px dotted var(--line-strong)}
+.stmt tr.grand th,.stmt tr.grand td{font-weight:700;border-top:1px solid var(--ink);border-bottom:3px double var(--ink)}
+.stmt tr.gap th,.stmt tr.gap td{border:0;padding:6px 0}
+
+.mix{display:flex;height:16px;border-radius:2px;overflow:hidden;background:var(--line);margin:6px 0 10px}
+.mix span{display:block;height:100%}
+.legend{display:grid;gap:8px 18px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.leg{display:flex;gap:8px;align-items:baseline;justify-content:space-between;border-bottom:1px dotted var(--line-strong);padding-bottom:4px}
+.leg i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.leg small{color:var(--muted);margin-left:6px}
+
+.lectura p{margin:7px 0;max-width:75ch}
+.chk{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.chk li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:baseline}
+.tag{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:3px;border:1px solid currentColor;white-space:nowrap}
+.tag.err{color:var(--bad)}.tag.warn{color:var(--warn)}.tag.info{color:var(--muted)}.tag.ok{color:var(--accent)}
+
+.dl{margin-top:22px;padding-top:16px;border-top:1px solid var(--line);display:flex;gap:12px 18px;flex-wrap:wrap;align-items:center}
+.dlmsg{margin:0;color:var(--muted);font-size:14px;flex:1 1 240px}
+.dlmsg.bad{color:var(--bad)}
+
+.live{background:var(--sheet);border:1px solid var(--line);border-top:2px solid var(--ink);border-radius:4px;padding:16px}
+.live h3{font-size:1.15rem}
+.who{margin:2px 0 10px;color:var(--muted);font-size:13.5px;overflow-wrap:anywhere}
+.k{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.k.big{flex-direction:column;align-items:flex-start;gap:2px}
+.k.big output{font-size:1.65rem;font-weight:500}
+.live .btn{margin-top:14px}
+.live .dlmsg{margin-top:8px}
+
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;gap:10px 18px;align-items:center;justify-content:space-between;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:var(--sheet);border-top:2px solid var(--ink)}
+.bar div{display:flex;flex-direction:column;line-height:1.2;font-size:12.5px;color:var(--muted)}
+.bar output{font-family:var(--font-num);font-size:1.05rem;color:var(--ink);font-weight:500}
+.foot{margin-top:8px;color:var(--muted);font-size:13px}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <p class="kicker">Hoja de costos · dólares (USD)</p>
+    <h1>Costeo paso a paso</h1>
+    <p class="lede">Registra todos los costos de tu producto o servicio, obtén el costo por unidad y el precio de venta, y descarga el resultado en un Excel.</p>
+  </header>
+
+  <details class="guide" open>
+    <summary>Guía rápida para registrar bien</summary>
+    <div class="guide-body">
+      <div>
+        <h3>Qué va en cada parte</h3>
+        <dl>
+          <dt>Materiales o insumos directos</dt>
+          <dd>Lo que se consume en cada unidad: la harina de una torta, el papel de una impresión.</dd>
+          <dt>Mano de obra directa</dt>
+          <dd>El tiempo de quien produce o presta el servicio: horas por unidad × costo de la hora. Si trabajas tú, también cuenta.</dd>
+          <dt>Costos indirectos</dt>
+          <dd>Necesarios para producir, pero compartidos entre todas las unidades: arriendo del taller, luz, depreciación. Se registran por mes.</dd>
+          <dt>Gastos de administración y ventas</dt>
+          <dd>Publicidad, contador, internet de la oficina, entregas. También se registran por mes.</dd>
+        </dl>
+      </div>
+      <div>
+        <h3>Reglas para no equivocarte</h3>
+        <ul>
+          <li>Usa valores de facturas o cotizaciones reales, no aproximados.</li>
+          <li>Si compraste un saco de 50 kg a $42, escribe costo 42 y contenido 50. La plataforma calcula el costo por kg.</li>
+          <li>Anota solo lo que entra en <b>una</b> unidad y suma la merma, que es lo que se desperdicia.</li>
+          <li>Los valores mensuales son de un mes completo. Si un gasto se comparte con otro producto, baja el porcentaje que corresponde a este.</li>
+          <li>El volumen mensual debe ser lo que realmente produces y vendes. Con ese número se reparten los costos mensuales.</li>
+          <li>Registra las compras sin IVA si lo recuperas como crédito tributario; si no lo recuperas, inclúyelo porque es parte del costo.</li>
+          <li>Lo que no aplica, déjalo en 0 o quita la fila. No inventes valores.</li>
+        </ul>
+        <p class="hint">Abajo hay un producto de ejemplo ya registrado (una torta de chocolate). Revísalo y luego pulsa «Empezar desde cero».</p>
+      </div>
+    </div>
+  </details>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="layout">
+    <main id="main"></main>
+
+    <aside class="aside" aria-label="Resultado en vivo">
+      <div class="live">
+        <h3>Resultado en vivo</h3>
+        <p class="who" data-text="titulo"></p>
+        <div class="k big"><span>Costo total por <span data-text="unidad"></span></span><output data-bind="total"></output></div>
+        <div class="k"><span>Precio sin IVA</span><output data-bind="precio"></output></div>
+        <div class="k"><span>PVP con IVA</span><output data-bind="pvp"></output></div>
+        <div class="k"><span>Utilidad al mes</span><output data-bind="utilMes"></output></div>
+        <div class="k"><span>Punto de equilibrio</span><output data-bind="equilibrio"></output></div>
+        <button type="button" class="btn block" data-act="download">Descargar Excel</button>
+        <p class="dlmsg" aria-live="polite"></p>
+      </div>
+    </aside>
+  </div>
+  <p class="foot" id="savednote" hidden>Tu avance se guarda en este navegador. Descarga el Excel para conservarlo y entregarlo.</p>
+</div>
+
+<div class="bar" id="bar">
+  <div><span>Costo por unidad</span><output data-bind="total"></output></div>
+  <div><span>PVP con IVA</span><output data-bind="pvp"></output></div>
+  <button type="button" class="btn" data-goto="s6">Ver resultado</button>
+</div>
+
+<datalist id="dl-uni"><option value="kg"><option value="g"><option value="lb"><option value="litro"><option value="ml"><option value="unidad"><option value="docena"><option value="metro"><option value="caja"><option value="paquete"><option value="hora"><option value="galón"></datalist>
+<datalist id="dl-cif"><option value="Arriendo del local o taller"><option value="Energía eléctrica"><option value="Agua potable"><option value="Gas"><option value="Depreciación de maquinaria"><option value="Mantenimiento de equipos"><option value="Supervisión"></datalist>
+<datalist id="dl-gas"><option value="Publicidad y redes sociales"><option value="Contador"><option value="Internet y teléfono"><option value="Transporte de entregas"><option value="Comisiones de venta"><option value="Papelería y suministros"></datalist>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script>
+// ==CORE-START==
+const TIPOS = {
+  producto: { mat: 'Materiales directos', mod: 'Mano de obra directa', cif: 'Costos indirectos de fabricación', gas: 'Gastos de administración y ventas', vol: 'Unidades producidas y vendidas al mes', unidad: 'unidad' },
+  servicio: { mat: 'Insumos directos', mod: 'Mano de obra del servicio', cif: 'Costos indirectos del servicio', gas: 'Gastos de administración y ventas', vol: 'Servicios prestados al mes', unidad: 'servicio' }
+};
+const num = v => { const x = typeof v === 'number' ? v : parseFloat(String(v == null ? '' : v).replace(',', '.')); return Number.isFinite(x) ? x : 0; };
+const r2 = x => Math.round((x + Number.EPSILON) * 100) / 100;
+const nid = () => 'i' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
+const blankMat = o => Object.assign({ id: nid(), nombre: '', unidad: '', costo: '', contenido: '', uso: '', merma: '' }, o);
+const blankMod = o => Object.assign({ id: nid(), nombre: '', costoHora: '', horas: '' }, o);
+const blankMes = o => Object.assign({ id: nid(), nombre: '', valor: '', pct: '100' }, o);
+function blankProduct(tipo) {
+  return { id: nid(), ejemplo: false, tipo: tipo || 'producto', nombre: '', unidad: '', volumen: '', mats: [blankMat()], mod: [blankMod()], cif: [blankMes()], gas: [blankMes()], margen: '30', base: 'costo', iva: '15', precioActual: '' };
+}
+function exampleProduct() {
+  return {
+    id: nid(), ejemplo: true, tipo: 'producto', nombre: 'Torta de chocolate', unidad: 'torta', volumen: '40',
+    mats: [
+      blankMat({ nombre: 'Harina de trigo', unidad: 'kg', costo: '42', contenido: '50', uso: '0.35', merma: '2' }),
+      blankMat({ nombre: 'Azúcar', unidad: 'kg', costo: '45', contenido: '50', uso: '0.30', merma: '2' }),
+      blankMat({ nombre: 'Huevos', unidad: 'unidad', costo: '5.40', contenido: '30', uso: '5', merma: '0' }),
+      blankMat({ nombre: 'Cacao en polvo', unidad: 'g', costo: '7.50', contenido: '500', uso: '80', merma: '3' }),
+      blankMat({ nombre: 'Mantequilla', unidad: 'g', costo: '4.80', contenido: '500', uso: '200', merma: '0' }),
+      blankMat({ nombre: 'Caja para torta', unidad: 'caja', costo: '18', contenido: '25', uso: '1', merma: '0' })
+    ],
+    mod: [
+      blankMod({ nombre: 'Pastelera', costoHora: '3.20', horas: '1.5' }),
+      blankMod({ nombre: 'Ayudante de cocina', costoHora: '2.50', horas: '0.5' })
+    ],
+    cif: [
+      blankMes({ nombre: 'Arriendo del taller (se comparte con otros productos)', valor: '220', pct: '50' }),
+      blankMes({ nombre: 'Energía eléctrica y gas del horno', valor: '85', pct: '60' }),
+      blankMes({ nombre: 'Depreciación de horno y batidora', valor: '32', pct: '60' })
+    ],
+    gas: [
+      blankMes({ nombre: 'Publicidad y redes sociales', valor: '40', pct: '50' }),
+      blankMes({ nombre: 'Internet y teléfono', valor: '30', pct: '50' }),
+      blankMes({ nombre: 'Transporte de entregas', valor: '60', pct: '100' })
+    ],
+    margen: '35', base: 'costo', iva: '15', precioActual: '22'
+  };
+}
+
+function calc(p) {
+  const vol = Math.max(num(p.volumen), 0);
+  const matRows = {}, modRows = {}, cifRows = {}, gasRows = {};
+  let md = 0, mo = 0, cifMes = 0, gasMes = 0;
+  (p.mats || []).forEach(r => { const cont = num(r.contenido); const v = cont > 0 ? num(r.costo) / cont * num(r.uso) * (1 + num(r.merma) / 100) : 0; matRows[r.id] = v; md += v; });
+  (p.mod || []).forEach(r => { const v = num(r.costoHora) * num(r.horas); modRows[r.id] = v; mo += v; });
+  (p.cif || []).forEach(r => { const v = num(r.valor) * num(r.pct) / 100; cifRows[r.id] = v; cifMes += v; });
+  (p.gas || []).forEach(r => { const v = num(r.valor) * num(r.pct) / 100; gasRows[r.id] = v; gasMes += v; });
+  const cifU = vol > 0 ? cifMes / vol : 0;
+  const gasU = vol > 0 ? gasMes / vol : 0;
+  const primo = md + mo, prod = md + mo + cifU, total = prod + gasU;
+  const m = num(p.margen) / 100;
+  let precio = 0, precioValido = true;
+  if (p.base === 'precio') { if (m < 1) precio = r2(total / (1 - m)); else precioValido = false; }
+  else precio = r2(total * (1 + m));
+  const iva = r2(precio * num(p.iva) / 100);
+  const pvp = r2(precio + iva);
+  const utilU = precio - total, utilMes = utilU * vol;
+  const margenReal = precio > 0 ? utilU / precio : 0;
+  const fijos = cifMes + gasMes, variable = md + mo, cm = precio - variable;
+  let equilibrio;
+  if (fijos <= 0) equilibrio = 0; else if (cm <= 0) equilibrio = null; else equilibrio = Math.ceil(fijos / cm - 1e-9);
+  const actual = num(p.precioActual);
+  const utilActual = actual > 0 ? actual - total : null;
+  return { vol, matRows, modRows, cifRows, gasRows, md, mo, cifMes, gasMes, cifU, gasU, primo, prod, total, precio, precioValido, iva, pvp, utilU, utilMes, margenReal, fijos, variable, cm, equilibrio, actual, utilActual };
+}
+
+// ---------- Excel ----------
+const XL = { green: 'FF17694F', yellow: 'FFFFF4C2', yline: 'FFDCC56A', grey: 'FFF1F4F0', ink: 'FF14201B', muted: 'FF546760', white: 'FFFFFFFF' };
+const FMT = { usd: '"$"#,##0.00', usd4: '"$"#,##0.0000', pct: '0.0%', int: '#,##0', qty: '#,##0.####' };
+const nv = x => (x === '' || x == null) ? null : num(x);
+
+function put(ws, r, c, v, o) {
+  o = o || {};
+  const cell = ws.getRow(r).getCell(c);
+  cell.value = v === undefined ? null : v;
+  const font = { name: 'Calibri', size: o.size || 11, bold: !!o.bold, italic: !!o.italic };
+  if (o.color) font.color = { argb: o.color };
+  cell.font = font;
+  const fill = o.fill || (o.input ? XL.yellow : null);
+  if (fill) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } };
+  if (o.fmt) cell.numFmt = o.fmt;
+  const al = { vertical: 'middle' };
+  if (o.align) al.horizontal = o.align;
+  if (o.wrap) al.wrapText = true;
+  cell.alignment = al;
+  const side = (style, argb) => ({ style: style, color: { argb: argb } });
+  const b = {};
+  if (o.input) { b.top = side('thin', XL.yline); b.bottom = side('thin', XL.yline); b.left = side('thin', XL.yline); b.right = side('thin', XL.yline); }
+  if (o.total) { b.top = side('thin', XL.ink); b.bottom = side('double', XL.ink); }
+  if (o.head) { b.bottom = side('thin', XL.ink); }
+  if (b.top || b.bottom || b.left || b.right) cell.border = b;
+  return cell;
+}
+function band(ws, r, text, lastCol) {
+  ws.mergeCells(r, 1, r, lastCol || 7);
+  put(ws, r, 1, text, { bold: true, color: XL.white, fill: XL.green, size: 12 });
+  ws.getRow(r).height = 22;
+}
+function headRow(ws, r, labels) {
+  labels.forEach((t, i) => put(ws, r, i + 1, t, { bold: true, head: true, wrap: true, fill: XL.grey, align: i === 0 ? 'left' : 'center' }));
+  ws.getRow(r).height = 34;
+}
+function sheetName(raw, used) {
+  const base = String(raw || '').replace(/[\[\]:*?\/\\']/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 26) || 'Producto';
+  let name = base, i = 2;
+  while (used.has(name.toLowerCase())) { name = base.slice(0, 24) + ' ' + i; i++; }
+  used.add(name.toLowerCase());
+  return name;
+}
+
+function fillProduct(ws, p, meta, fecha) {
+  const c = calc(p);
+  const T = TIPOS[p.tipo] || TIPOS.producto;
+  const esServ = p.tipo === 'servicio';
+  [38, 16, 18, 20, 20, 13, 18].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  ws.mergeCells('A1:G1');
+  put(ws, 1, 1, 'Costeo de ' + (esServ ? 'servicio' : 'producto') + ': ' + (p.nombre || 'Sin nombre'), { bold: true, size: 16, color: XL.green });
+  ws.getRow(1).height = 28;
+  ws.mergeCells('A2:G2');
+  put(ws, 2, 1, 'Estudiante: ' + (meta.estudiante || '—') + '  ·  Curso: ' + (meta.curso || '—') + '  ·  Emprendimiento: ' + (meta.negocio || '—') + '  ·  Fecha: ' + fecha.toLocaleDateString('es-EC'), { color: XL.muted });
+  ws.mergeCells('A3:G3');
+  put(ws, 3, 1, 'Las celdas amarillas son los datos que ingresaste. Las demás se calculan con fórmulas.', { italic: true, color: XL.muted });
+
+  band(ws, 5, '1. Datos generales');
+  const kv = (r, label, val, o) => { put(ws, r, 1, label, { bold: true }); put(ws, r, 2, val, Object.assign({ input: true, align: 'right' }, o)); };
+  kv(6, 'Tipo', esServ ? 'Servicio' : 'Producto');
+  kv(7, 'Se vende por (unidad)', p.unidad || T.unidad);
+  kv(8, T.vol, nv(p.volumen), { fmt: FMT.int });
+  kv(9, '% de utilidad deseada', num(p.margen) / 100, { fmt: FMT.pct });
+  kv(10, 'La utilidad se calcula', p.base === 'precio' ? 'Sobre el precio' : 'Sobre el costo');
+  ws.getCell('B10').dataValidation = { type: 'list', allowBlank: false, formulae: ['"Sobre el costo,Sobre el precio"'] };
+  kv(11, 'IVA', num(p.iva) / 100, { fmt: FMT.pct });
+  kv(12, 'Precio al que vendes hoy (sin IVA, opcional)', nv(p.precioActual), { fmt: FMT.usd });
+
+  let r = 14;
+  // 2. Materiales
+  band(ws, r++, '2. ' + T.mat);
+  headRow(ws, r++, [esServ ? 'Insumo' : 'Material', 'Unidad', 'Costo de compra ($)', 'Contenido de la compra', 'Cantidad usada por unidad', 'Merma (%)', 'Costo por unidad ($)']);
+  const mats = p.mats && p.mats.length ? p.mats : [blankMat()];
+  const m0 = r;
+  mats.forEach(row => {
+    put(ws, r, 1, row.nombre || null, { input: true });
+    put(ws, r, 2, row.unidad || null, { input: true, align: 'center' });
+    put(ws, r, 3, nv(row.costo), { input: true, fmt: FMT.usd });
+    put(ws, r, 4, nv(row.contenido), { input: true, fmt: FMT.qty });
+    put(ws, r, 5, nv(row.uso), { input: true, fmt: FMT.qty });
+    put(ws, r, 6, nv(row.merma) == null ? null : num(row.merma) / 100, { input: true, fmt: FMT.pct });
+    put(ws, r, 7, { formula: 'IFERROR(C' + r + '/D' + r + '*E' + r + '*(1+F' + r + '),0)', result: c.matRows[row.id] || 0 }, { fmt: FMT.usd4 });
+    r++;
+  });
+  const mTot = r;
+  put(ws, r, 1, 'Total ' + T.mat.toLowerCase() + ' por unidad', { bold: true, total: true });
+  for (let k = 2; k <= 6; k++) put(ws, r, k, null, { total: true });
+  put(ws, r, 7, { formula: 'SUM(G' + m0 + ':G' + (r - 1) + ')', result: c.md }, { bold: true, total: true, fmt: FMT.usd4 });
+  r += 2;
+
+  // 3. Mano de obra
+  band(ws, r++, '3. ' + T.mod);
+  headRow(ws, r++, ['Cargo o actividad', 'Costo por hora ($)', 'Horas por unidad', 'Costo por unidad ($)']);
+  const mods = p.mod && p.mod.length ? p.mod : [blankMod()];
+  const o0 = r;
+  mods.forEach(row => {
+    put(ws, r, 1, row.nombre || null, { input: true });
+    put(ws, r, 2, nv(row.costoHora), { input: true, fmt: FMT.usd });
+    put(ws, r, 3, nv(row.horas), { input: true, fmt: FMT.qty });
+    put(ws, r, 4, { formula: 'B' + r + '*C' + r, result: c.modRows[row.id] || 0 }, { fmt: FMT.usd4 });
+    r++;
+  });
+  const oTot = r;
+  put(ws, r, 1, 'Total mano de obra por unidad', { bold: true, total: true });
+  put(ws, r, 2, null, { total: true }); put(ws, r, 3, null, { total: true });
+  put(ws, r, 4, { formula: 'SUM(D' + o0 + ':D' + (r - 1) + ')', result: c.mo }, { bold: true, total: true, fmt: FMT.usd4 });
+  r += 2;
+
+  // 4 y 5. Costos mensuales
+  const quien = esServ ? 'servicio' : 'producto';
+  const mesBlock = (title, list, rowCalc, labelTot, totMes, totU) => {
+    band(ws, r++, title);
+    headRow(ws, r++, ['Concepto', 'Valor mensual ($)', '% que corresponde a este ' + quien, 'Parte de este ' + quien + ' (mes)', 'Por unidad ($)']);
+    const rows = list && list.length ? list : [blankMes()];
+    const a0 = r;
+    rows.forEach(row => {
+      put(ws, r, 1, row.nombre || null, { input: true });
+      put(ws, r, 2, nv(row.valor), { input: true, fmt: FMT.usd });
+      put(ws, r, 3, nv(row.pct) == null ? null : num(row.pct) / 100, { input: true, fmt: FMT.pct });
+      const part = rowCalc[row.id] || 0;
+      put(ws, r, 4, { formula: 'B' + r + '*C' + r, result: part }, { fmt: FMT.usd });
+      put(ws, r, 5, { formula: 'IFERROR(D' + r + '/$B$8,0)', result: c.vol > 0 ? part / c.vol : 0 }, { fmt: FMT.usd4 });
+      r++;
+    });
+    const tot = r;
+    put(ws, r, 1, labelTot, { bold: true, total: true });
+    put(ws, r, 2, null, { total: true }); put(ws, r, 3, null, { total: true });
+    put(ws, r, 4, { formula: 'SUM(D' + a0 + ':D' + (r - 1) + ')', result: totMes }, { bold: true, total: true, fmt: FMT.usd });
+    put(ws, r, 5, { formula: 'SUM(E' + a0 + ':E' + (r - 1) + ')', result: totU }, { bold: true, total: true, fmt: FMT.usd4 });
+    r += 2;
+    return tot;
+  };
+  const cTot = mesBlock('4. ' + T.cif, p.cif, c.cifRows, 'Total costos indirectos', c.cifMes, c.cifU);
+  const gTot = mesBlock('5. ' + T.gas, p.gas, c.gasRows, 'Total gastos de administración y ventas', c.gasMes, c.gasU);
+
+  // 6. Resultados
+  band(ws, r++, '6. Precio y resultados');
+  const line = (label, formula, result, o) => {
+    o = o || {};
+    put(ws, r, 1, label, { bold: !!o.bold, total: !!o.total });
+    put(ws, r, 2, { formula: formula, result: result }, { fmt: o.fmt || FMT.usd4, bold: !!o.bold, total: !!o.total, align: 'right' });
+    if (o.note) put(ws, r, 3, o.note, { italic: true, color: XL.muted });
+    return r++;
+  };
+  const rMD = line('Materiales directos', 'G' + mTot, c.md);
+  const rMO = line('Mano de obra directa', 'D' + oTot, c.mo);
+  const rPrimo = line('Costo primo (materiales + mano de obra)', 'B' + rMD + '+B' + rMO, c.primo, { bold: true, total: true });
+  const rCIF = line('Costos indirectos por unidad', 'E' + cTot, c.cifU);
+  const rProd = line('Costo de producción por unidad', 'B' + rPrimo + '+B' + rCIF, c.prod, { bold: true, total: true });
+  const rGas = line('Gastos de administración y ventas por unidad', 'E' + gTot, c.gasU);
+  const rTotal = line('COSTO TOTAL POR UNIDAD', 'B' + rProd + '+B' + rGas, c.total, { bold: true, total: true });
+  line('Costo de conversión (mano de obra + indirectos)', 'B' + rMO + '+B' + rCIF, c.mo + c.cifU, { note: 'Indicador de referencia' });
+  r++;
+  const precioF = 'ROUND(IF(AND(B10="Sobre el precio",B9>=1),0,IF(B10="Sobre el precio",B' + rTotal + '/(1-B9),B' + rTotal + '*(1+B9))),2)';
+  const rPrecio = line('Precio de venta sin IVA', precioF, c.precio, { bold: true, fmt: FMT.usd });
+  const rUtil = line('Utilidad por unidad', 'B' + rPrecio + '-B' + rTotal, c.utilU);
+  const rIva = line('IVA', 'ROUND(B' + rPrecio + '*B11,2)', c.iva, { fmt: FMT.usd });
+  const rPvp = line('PVP (precio al público con IVA)', 'B' + rPrecio + '+B' + rIva, c.pvp, { bold: true, total: true, fmt: FMT.usd });
+  r++;
+  band(ws, r++, 'Utilidad y punto de equilibrio');
+  const rUtilMes = line('Utilidad mensual estimada', 'B' + rUtil + '*B8', c.utilMes, { fmt: FMT.usd });
+  line('Utilidad sobre el precio de venta', 'IFERROR(B' + rUtil + '/B' + rPrecio + ',0)', c.margenReal, { fmt: FMT.pct });
+  const rFijos = line('Costos fijos del mes (indirectos + gastos)', 'D' + cTot + '+D' + gTot, c.fijos, { fmt: FMT.usd, note: 'Se tratan como fijos los valores mensuales' });
+  const rVar = line('Costo variable por unidad (materiales + mano de obra)', 'B' + rPrimo, c.variable);
+  const eqF = 'IF(B' + rFijos + '=0,0,IF(B' + rPrecio + '-B' + rVar + '<=0,"No alcanza",ROUNDUP(B' + rFijos + '/(B' + rPrecio + '-B' + rVar + '),0)))';
+  const rEq = line('Punto de equilibrio (unidades al mes)', eqF, c.equilibrio === null ? 'No alcanza' : c.equilibrio, { fmt: FMT.int, bold: true });
+  if (c.actual > 0) line('Utilidad por unidad con tu precio actual', 'IF(B12>0,B12-B' + rTotal + ',"")', c.utilActual, { note: 'Usa el precio de la celda B12' });
+
+  ws.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
+  return { vol: 'B8', prod: 'B' + rProd, gas: 'B' + rGas, total: 'B' + rTotal, precio: 'B' + rPrecio, pvp: 'B' + rPvp, util: 'B' + rUtil, utilMes: 'B' + rUtilMes, eq: 'B' + rEq, c: c };
+}
+
+function fillResumen(ws, meta, items, fecha) {
+  [38, 12, 14, 18, 16, 16, 15, 15, 16, 16, 18].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  ws.mergeCells('A1:K1');
+  put(ws, 1, 1, 'Resumen de costeo', { bold: true, size: 18, color: XL.green });
+  ws.getRow(1).height = 30;
+  const info = [['Estudiante', meta.estudiante], ['Curso o paralelo', meta.curso], ['Emprendimiento o empresa', meta.negocio], ['Fecha de descarga', fecha.toLocaleDateString('es-EC')]];
+  info.forEach((it, i) => {
+    put(ws, 3 + i, 1, it[0], { bold: true });
+    ws.mergeCells(3 + i, 2, 3 + i, 5);
+    put(ws, 3 + i, 2, it[1] || '—', { input: true });
+  });
+  const hr = 9;
+  headRow(ws, hr, ['Producto o servicio', 'Tipo', 'Volumen mensual', 'Costo de producción por unidad', 'Gastos por unidad', 'Costo total por unidad', 'Precio sin IVA', 'PVP con IVA', 'Utilidad por unidad', 'Utilidad mensual', 'Punto de equilibrio (unidades)']);
+  let r = hr + 1;
+  const first = r;
+  items.forEach(it => {
+    const q = "'" + it.name + "'!";
+    const c = it.ref.c;
+    put(ws, r, 1, it.p.nombre || 'Sin nombre', { bold: true });
+    put(ws, r, 2, it.p.tipo === 'servicio' ? 'Servicio' : 'Producto', { align: 'center' });
+    put(ws, r, 3, { formula: q + it.ref.vol, result: c.vol }, { fmt: FMT.int });
+    put(ws, r, 4, { formula: q + it.ref.prod, result: c.prod }, { fmt: FMT.usd4 });
+    put(ws, r, 5, { formula: q + it.ref.gas, result: c.gasU }, { fmt: FMT.usd4 });
+    put(ws, r, 6, { formula: q + it.ref.total, result: c.total }, { fmt: FMT.usd4, bold: true });
+    put(ws, r, 7, { formula: q + it.ref.precio, result: c.precio }, { fmt: FMT.usd });
+    put(ws, r, 8, { formula: q + it.ref.pvp, result: c.pvp }, { fmt: FMT.usd });
+    put(ws, r, 9, { formula: q + it.ref.util, result: c.utilU }, { fmt: FMT.usd4 });
+    put(ws, r, 10, { formula: q + it.ref.utilMes, result: c.utilMes }, { fmt: FMT.usd });
+    put(ws, r, 11, { formula: q + it.ref.eq, result: c.equilibrio === null ? 'No alcanza' : c.equilibrio }, { fmt: FMT.int, align: 'right' });
+    r++;
+  });
+  put(ws, r, 1, 'Utilidad mensual total estimada', { bold: true, total: true });
+  for (let k = 2; k <= 9; k++) put(ws, r, k, null, { total: true });
+  put(ws, r, 10, { formula: 'SUM(J' + first + ':J' + (r - 1) + ')', result: items.reduce((s, it) => s + it.ref.c.utilMes, 0) }, { bold: true, total: true, fmt: FMT.usd });
+  put(ws, r, 11, null, { total: true });
+  ws.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
+}
+
+function fillNotas(ws) {
+  ws.getColumn(1).width = 44; ws.getColumn(2).width = 80;
+  ws.mergeCells('A1:B1');
+  put(ws, 1, 1, 'Cómo se calculó', { bold: true, size: 16, color: XL.green });
+  const rows = [
+    ['Costo por unidad de un material', 'Costo de compra ÷ Contenido de la compra × Cantidad usada por unidad × (1 + Merma)'],
+    ['Mano de obra por unidad', 'Costo por hora × Horas por unidad'],
+    ['Costo indirecto o gasto por unidad', 'Valor mensual × % que corresponde a este producto ÷ Volumen mensual'],
+    ['Costo primo', 'Materiales directos + Mano de obra directa'],
+    ['Costo de producción por unidad', 'Costo primo + Costos indirectos por unidad'],
+    ['Costo total por unidad', 'Costo de producción + Gastos de administración y ventas por unidad'],
+    ['Precio con utilidad sobre el costo', 'Costo total × (1 + % de utilidad)'],
+    ['Precio con utilidad sobre el precio', 'Costo total ÷ (1 − % de utilidad)'],
+    ['PVP', 'Precio de venta sin IVA + IVA'],
+    ['Punto de equilibrio', 'Costos fijos del mes ÷ (Precio sin IVA − Costo variable por unidad). Se tratan como fijos los valores mensuales (costos indirectos y gastos) y como variables los materiales y la mano de obra por unidad.']
+  ];
+  rows.forEach((it, i) => {
+    put(ws, 3 + i, 1, it[0], { bold: true, wrap: true });
+    put(ws, 3 + i, 2, it[1], { wrap: true });
+    ws.getRow(3 + i).height = it[1].length > 90 ? 48 : 20;
+  });
+}
+
+function buildWorkbook(ExcelJSLib, meta, products, fecha) {
+  const wb = new ExcelJSLib.Workbook();
+  wb.creator = 'Costeo paso a paso';
+  wb.created = fecha;
+  wb.calcProperties = { fullCalcOnLoad: true };
+  const used = new Set(['resumen', 'cómo se calculó']);
+  const opts = { views: [{ showGridLines: false }], properties: { tabColor: { argb: XL.green } } };
+  const resumen = wb.addWorksheet('Resumen', opts);
+  const items = products.map(p => {
+    const name = sheetName(p.nombre, used);
+    const ws = wb.addWorksheet(name, { views: [{ showGridLines: false }] });
+    return { p: p, name: name, ref: fillProduct(ws, p, meta, fecha) };
+  });
+  fillResumen(resumen, meta, items, fecha);
+  fillNotas(wb.addWorksheet('Cómo se calculó', { views: [{ showGridLines: false }] }));
+  return wb;
+}
+// ==CORE-END==
+
+// ---------- Interfaz ----------
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const money = (n, d) => (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: d == null ? 2 : d, maximumFractionDigits: d == null ? 2 : d });
+const pctTxt = v => (v * 100).toLocaleString('en-US', { maximumFractionDigits: 1 }) + '%';
+const KEY = 'costeo-paso-a-paso-v1';
+const MAX_PRODUCTOS = 8;
+
+function normalize(p) {
+  const b = blankProduct(p.tipo === 'servicio' ? 'servicio' : 'producto');
+  return Object.assign(b, p, { mats: p.mats || [], mod: p.mod || [], cif: p.cif || [], gas: p.gas || [] });
+}
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (s && Array.isArray(s.products) && s.products.length) {
+      return { meta: Object.assign({ estudiante: '', curso: '', negocio: '' }, s.meta), products: s.products.map(normalize), active: s.active };
+    }
+  } catch (e) {}
+  return null;
+}
+let storageOk = false;
+try { localStorage.setItem(KEY + '-t', '1'); localStorage.removeItem(KEY + '-t'); storageOk = true; } catch (e) {}
+const state = loadState() || (() => { const ex = exampleProduct(); return { meta: { estudiante: '', curso: '', negocio: '' }, products: [ex], active: ex.id }; })();
+if (!state.products.some(p => p.id === state.active)) state.active = state.products[0].id;
+
+let saveTimer = 0;
+function scheduleSave() {
+  if (!storageOk) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }, 400);
+}
+const cur = () => state.products.find(p => p.id === state.active) || state.products[0];
+const labelOf = p => (p.nombre || '').trim() || 'Sin nombre';
+const unidadDe = p => (p.unidad || '').trim() || TIPOS[p.tipo].unidad;
+
+function rowHTML(sec, r, p) {
+  const id = r.id;
+  const fid = k => 'f-' + sec + '-' + id + '-' + k;
+  const txt = (k, label, ph, list) => '<label class="f' + (k === 'nombre' ? ' name' : '') + '" data-l="' + label + '"><input class="in" id="' + fid(k) + '" data-k="' + k + '"' + (list ? ' list="' + list + '"' : '') + ' placeholder="' + esc(ph) + '" value="' + esc(r[k]) + '"></label>';
+  const nm = (k, label, ph) => '<label class="f" data-l="' + label + '"><input class="in num" id="' + fid(k) + '" data-k="' + k + '" type="number" inputmode="decimal" min="0" step="any" placeholder="' + esc(ph) + '" value="' + esc(r[k]) + '"></label>';
+  const del = '<button type="button" class="x" data-del="' + sec + ':' + id + '"><span class="lbl">Quitar fila</span><span class="ic" aria-hidden="true">×</span></button>';
+  const out = (label, key) => '<div class="f" data-l="' + label + '"><output class="calc" data-bind="' + key + ':' + id + '"></output></div>';
+  if (sec === 'mats') {
+    return '<div class="row mats" data-sec="mats" data-id="' + id + '">' +
+      txt('nombre', p.tipo === 'servicio' ? 'Insumo' : 'Material', p.tipo === 'servicio' ? 'Ej.: Tóner' : 'Ej.: Harina') + txt('unidad', 'Unidad', 'kg', 'dl-uni') +
+      nm('costo', 'Costo de compra ($)', '0.00') + nm('contenido', 'Contenido de la compra', '50') + nm('uso', 'Cantidad usada por unidad', '0.35') + nm('merma', 'Merma (%)', '0') +
+      out('Costo por unidad', 'mat') + del + '</div>';
+  }
+  if (sec === 'mod') {
+    return '<div class="row mod" data-sec="mod" data-id="' + id + '">' +
+      txt('nombre', 'Cargo o actividad', 'Ej.: Pastelera') + nm('costoHora', 'Costo por hora ($)', '0.00') + nm('horas', 'Horas por unidad', '1.5') +
+      out('Costo por unidad', 'mod') + del + '</div>';
+  }
+  return '<div class="row mes" data-sec="' + sec + '" data-id="' + id + '">' +
+    txt('nombre', 'Concepto', sec === 'cif' ? 'Ej.: Arriendo' : 'Ej.: Publicidad', sec === 'cif' ? 'dl-cif' : 'dl-gas') + nm('valor', 'Valor mensual ($)', '0.00') + nm('pct', '% que corresponde a este ' + (p.tipo === 'servicio' ? 'servicio' : 'producto'), '100') +
+    out('Parte de este mes', sec + 'M') + out('Por unidad', sec + 'U') + del + '</div>';
+}
+function rowsHTML(sec, p) {
+  return p[sec].length ? p[sec].map(r => rowHTML(sec, r, p)).join('') : '<p class="empty">Aún no hay filas. Agrega la primera.</p>';
+}
+function headHTML(kind, p) {
+  const quien = p.tipo === 'servicio' ? 'servicio' : 'producto';
+  const cols = {
+    mats: [p.tipo === 'servicio' ? 'Insumo' : 'Material', 'Unidad', 'Costo de compra ($)', 'Contenido de la compra', 'Cantidad usada por unidad', 'Merma (%)', 'Costo por unidad ($)', ''],
+    mod: ['Cargo o actividad', 'Costo por hora ($)', 'Horas por unidad', 'Costo por unidad ($)', ''],
+    mes: ['Concepto', 'Valor mensual ($)', '% que corresponde a este ' + quien, 'Parte de este ' + quien + ' (mes)', 'Por unidad ($)', '']
+  }[kind];
+  return '<div class="row head ' + kind + '" aria-hidden="true">' + cols.map(t => '<span>' + esc(t) + '</span>').join('') + '</div>';
+}
+function fld(id, label, attrs, cls) {
+  return '<label class="fld"><span>' + label + '</span><input class="in ' + (cls || '') + '" id="' + id + '" ' + attrs + '></label>';
+}
+
+function renderMain() {
+  const p = cur(), T = TIPOS[p.tipo], esServ = p.tipo === 'servicio';
+  const quien = esServ ? 'servicio' : 'producto';
+  const numAttr = (k, ph) => 'data-p="' + k + '" type="number" inputmode="decimal" min="0" step="any" placeholder="' + ph + '" value="' + esc(p[k]) + '"';
+  $('#main').innerHTML =
+    (p.ejemplo ? '<div class="example"><p><b>Este es un ejemplo.</b> Está resuelto para que veas cómo se registra cada dato. Cuando estés listo, borra el ejemplo y registra tu ' + quien + '.</p><button type="button" class="btn" data-act="clearexample">Empezar desde cero</button></div>' : '') +
+    '<ol class="steps" aria-label="Pasos para registrar">' +
+    [['s1', 'Datos'], ['s2', esServ ? 'Insumos' : 'Materiales'], ['s3', 'Mano de obra'], ['s4', 'Indirectos'], ['s5', 'Gastos'], ['s6', 'Precio']].map((s, i) => '<li><a href="#' + s[0] + '" data-goto="' + s[0] + '"><b>' + (i + 1) + '</b>' + s[1] + '</a></li>').join('') + '</ol>' +
+
+    '<section class="sec" id="s1"><h2><span class="n">1</span>Datos</h2>' +
+    '<p class="how"><b>Cómo registrar:</b> escribe tus datos una sola vez; aparecerán en todas las hojas del Excel. Luego describe lo que vas a costear.</p>' +
+    '<div class="grid3">' +
+    fld('m-estudiante', 'Nombre del estudiante', 'data-m="estudiante" autocomplete="name" value="' + esc(state.meta.estudiante) + '"') +
+    fld('m-curso', 'Curso o paralelo', 'data-m="curso" value="' + esc(state.meta.curso) + '"') +
+    fld('m-negocio', 'Emprendimiento o empresa', 'data-m="negocio" value="' + esc(state.meta.negocio) + '"') +
+    '</div>' +
+    '<h3>¿Qué vas a costear?</h3>' +
+    '<div class="seg" role="group" aria-label="Tipo"><button type="button" data-tipo="producto" aria-pressed="' + !esServ + '">Producto</button><button type="button" data-tipo="servicio" aria-pressed="' + esServ + '">Servicio</button></div>' +
+    '<div class="grid3">' +
+    fld('p-nombre', 'Nombre del ' + quien, 'data-p="nombre" placeholder="' + (esServ ? 'Ej.: Clase de repaso' : 'Ej.: Torta de chocolate') + '" value="' + esc(p.nombre) + '"') +
+    fld('p-unidad', 'Se vende por (unidad)', 'data-p="unidad" list="dl-uni" placeholder="' + (esServ ? 'Ej.: hora' : 'Ej.: torta') + '" value="' + esc(p.unidad) + '"') +
+    fld('p-volumen', T.vol, numAttr('volumen', '40'), 'num') +
+    '</div>' +
+    '<p class="hint">El volumen es lo que realmente ' + (esServ ? 'prestas' : 'produces y vendes') + ' en un mes normal. Con ese número se reparten los costos mensuales entre cada unidad.</p>' +
+    '<div class="dl"><button type="button" class="btn danger" data-act="delprod">Eliminar este ' + quien + '</button></div>' +
+    '</section>' +
+
+    '<section class="sec" id="s2"><h2><span class="n">2</span>' + T.mat + '</h2>' +
+    '<p class="how"><b>Cómo registrar:</b> una fila por ' + (esServ ? 'insumo' : 'material') + '. Si compraste un saco de 50 kg a $42, escribe costo de compra 42 y contenido de la compra 50 (unidad: kg). Luego anota cuánto entra en una sola unidad y el porcentaje que se desperdicia.</p>' +
+    headHTML('mats', p) + '<div class="rows" id="rows-mats">' + rowsHTML('mats', p) + '</div>' +
+    '<button type="button" class="btn ghost add-row" data-add="mats">+ Agregar ' + (esServ ? 'insumo' : 'material') + '</button>' +
+    '<div class="total"><span>Total ' + T.mat.toLowerCase() + ' por unidad</span><output data-bind="md"></output></div></section>' +
+
+    '<section class="sec" id="s3"><h2><span class="n">3</span>' + T.mod + '</h2>' +
+    '<p class="how"><b>Cómo registrar:</b> escribe cada persona o actividad, cuánto cuesta su hora de trabajo y cuántas horas toma cada unidad. Si trabajas tú, valora tu hora también.</p>' +
+    headHTML('mod', p) + '<div class="rows" id="rows-mod">' + rowsHTML('mod', p) + '</div>' +
+    '<button type="button" class="btn ghost add-row" data-add="mod">+ Agregar persona o actividad</button>' +
+    '<div class="total"><span>Total mano de obra por unidad</span><output data-bind="mo"></output></div>' +
+    '<details class="helper" data-helper="hora"><summary>¿No sabes cuánto cuesta tu hora de trabajo?</summary>' +
+    '<div class="grid4">' + fld('h-cargo', 'Cargo o actividad', 'data-f="cargo" placeholder="Ej.: Pastelera"') +
+    fld('h-mes', 'Costo mensual del trabajador ($)', 'data-f="mes" type="number" inputmode="decimal" min="0" step="any" placeholder="620"', 'num') +
+    fld('h-horas', 'Horas de trabajo al mes', 'data-f="horas" type="number" inputmode="decimal" min="0" step="any" value="160"', 'num') + '</div>' +
+    '<p class="hint">Usa el sueldo más los beneficios y aportes que paga el empleador.</p>' +
+    '<div class="res"><span>Costo por hora:</span><output data-f="out">$0.0000</output><button type="button" class="btn ghost" data-act="helper-add">Agregar como fila</button></div></details>' +
+    '</section>' +
+
+    '<section class="sec" id="s4"><h2><span class="n">4</span>' + T.cif + '</h2>' +
+    '<p class="how"><b>Cómo registrar:</b> escribe el valor de un mes completo. Si el gasto se comparte con otro producto, indica el porcentaje que corresponde a este (100 si es solo de este). Se reparte entre las unidades que produces al mes.</p>' +
+    headHTML('mes', p) + '<div class="rows" id="rows-cif">' + rowsHTML('cif', p) + '</div>' +
+    '<button type="button" class="btn ghost add-row" data-add="cif">+ Agregar costo indirecto</button>' +
+    '<div class="total"><span>Total costos indirectos</span><span class="vals"><span>Por mes <output data-bind="cifMes"></output></span><span>Por unidad <output data-bind="cifU"></output></span></span></div>' +
+    '<details class="helper" data-helper="dep"><summary>¿Cómo calculo la depreciación mensual?</summary>' +
+    '<div class="grid4">' + fld('d-activo', 'Activo', 'data-f="activo" placeholder="Ej.: Horno industrial"') +
+    fld('d-valor', 'Valor de compra ($)', 'data-f="valor" type="number" inputmode="decimal" min="0" step="any" placeholder="1800"', 'num') +
+    fld('d-residual', 'Valor al final de su vida ($)', 'data-f="residual" type="number" inputmode="decimal" min="0" step="any" placeholder="0"', 'num') +
+    fld('d-anios', 'Vida útil (años)', 'data-f="anios" type="number" inputmode="decimal" min="0" step="any" placeholder="10"', 'num') + '</div>' +
+    '<p class="hint">Referencia: equipos de cómputo 3 años, vehículos 5, maquinaria y muebles 10. Si el activo se comparte, ajusta el porcentaje en la fila.</p>' +
+    '<div class="res"><span>Depreciación mensual:</span><output data-f="out">$0.00</output><button type="button" class="btn ghost" data-act="helper-add">Agregar a costos indirectos</button></div></details>' +
+    '</section>' +
+
+    '<section class="sec" id="s5"><h2><span class="n">5</span>' + T.gas + '</h2>' +
+    '<p class="how"><b>Cómo registrar:</b> igual que en los costos indirectos: valor de un mes completo y porcentaje que corresponde a este ' + quien + '. Aquí van publicidad, contador, internet, entregas y similares.</p>' +
+    headHTML('mes', p) + '<div class="rows" id="rows-gas">' + rowsHTML('gas', p) + '</div>' +
+    '<button type="button" class="btn ghost add-row" data-add="gas">+ Agregar gasto</button>' +
+    '<div class="total"><span>Total gastos de administración y ventas</span><span class="vals"><span>Por mes <output data-bind="gasMes"></output></span><span>Por unidad <output data-bind="gasU"></output></span></span></div>' +
+    '</section>' +
+
+    '<section class="sec" id="s6"><h2><span class="n">6</span>Precio y resultados</h2>' +
+    '<p class="how"><b>Cómo registrar:</b> define cuánto quieres ganar y el IVA. La plataforma calcula el precio de venta, la utilidad y cuántas unidades necesitas vender para no perder.</p>' +
+    '<div class="grid4">' +
+    fld('p-margen', '% de utilidad deseada', numAttr('margen', '30'), 'num') +
+    '<label class="fld"><span>La utilidad se calcula</span><select class="in" id="p-base" data-p="base"><option value="costo"' + (p.base !== 'precio' ? ' selected' : '') + '>Sobre el costo</option><option value="precio"' + (p.base === 'precio' ? ' selected' : '') + '>Sobre el precio</option></select></label>' +
+    fld('p-iva', 'IVA (%)', numAttr('iva', '15'), 'num') +
+    fld('p-actual', 'Precio al que vendes hoy, sin IVA (opcional)', numAttr('precioActual', '0.00'), 'num') +
+    '</div>' +
+    '<p class="hint">Sobre el costo: precio = costo × (1 + %). Sobre el precio: precio = costo ÷ (1 − %). Verifica la tarifa de IVA vigente.</p>' +
+    '<h3>Costo y precio por <span data-text="unidad"></span></h3>' +
+    '<table class="stmt"><tbody>' +
+    '<tr><th scope="row">' + T.mat + '</th><td><output data-bind="md"></output></td></tr>' +
+    '<tr><th scope="row">' + T.mod + '</th><td><output data-bind="mo"></output></td></tr>' +
+    '<tr class="sub"><th scope="row">Costo primo</th><td><output data-bind="primo"></output></td></tr>' +
+    '<tr><th scope="row">Costos indirectos</th><td><output data-bind="cifU"></output></td></tr>' +
+    '<tr class="sub"><th scope="row">Costo de producción</th><td><output data-bind="prod"></output></td></tr>' +
+    '<tr><th scope="row">Gastos de administración y ventas</th><td><output data-bind="gasU"></output></td></tr>' +
+    '<tr class="grand"><th scope="row">Costo total</th><td><output data-bind="total"></output></td></tr>' +
+    '<tr class="gap"><th></th><td></td></tr>' +
+    '<tr><th scope="row" data-text="utilLabel"></th><td><output data-bind="utilU"></output></td></tr>' +
+    '<tr class="sub"><th scope="row">Precio de venta sin IVA</th><td><output data-bind="precio"></output></td></tr>' +
+    '<tr><th scope="row" data-text="ivaLabel"></th><td><output data-bind="iva"></output></td></tr>' +
+    '<tr class="grand"><th scope="row">PVP (precio al público)</th><td><output data-bind="pvp"></output></td></tr>' +
+    '</tbody></table>' +
+    '<h3>¿De qué está hecho tu costo?</h3>' +
+    '<div class="mix" role="img" aria-label="Composición del costo total"><span data-seg="md" style="background:var(--s1)"></span><span data-seg="mo" style="background:var(--s2)"></span><span data-seg="cifU" style="background:var(--s3)"></span><span data-seg="gasU" style="background:var(--s4)"></span></div>' +
+    '<div class="legend">' +
+    [['md', 's1', T.mat], ['mo', 's2', T.mod], ['cifU', 's3', 'Costos indirectos'], ['gasU', 's4', 'Gastos de adm. y ventas']].map(l => '<div class="leg"><span><i style="background:var(--' + l[1] + ')"></i>' + l[2] + '<small data-text="pct-' + l[0] + '"></small></span><output data-bind="' + l[0] + '"></output></div>').join('') +
+    '</div>' +
+    '<h3>Lectura del resultado</h3><div class="lectura" id="lectura"></div>' +
+    '<h3>Revisión antes de descargar</h3><ul class="chk" id="checks"></ul>' +
+    '<div class="dl"><button type="button" class="btn" data-act="download">Descargar Excel</button><p class="dlmsg" aria-live="polite"></p></div>' +
+    '<p class="hint">El Excel trae una hoja de resumen, una hoja por cada producto o servicio con fórmulas visibles, y una hoja que explica cómo se calculó cada valor.</p>' +
+    '</section>';
+}
+
+function renderTabs() {
+  $('#tabs').innerHTML = state.products.map(p =>
+    '<button type="button" class="tab" data-tab="' + p.id + '" aria-current="' + (p.id === state.active) + '"><span data-tablabel="' + p.id + '">' + esc(labelOf(p)) + '</span>' + (p.ejemplo ? '<span class="badge">Ejemplo</span>' : '') + '</button>'
+  ).join('') +
+    (state.products.length < MAX_PRODUCTOS ? '<button type="button" class="tab add" data-act="newprod">+ Agregar producto o servicio</button>' : '') +
+    (state.products.some(p => p.ejemplo) ? '' : '<button type="button" class="link" data-act="loadexample">Ver ejemplo</button>');
+}
+function renderAll() { renderTabs(); renderMain(); refresh(); }
+
+function fmtBind(kind, v) {
+  if (kind === 'u') return money(v, 4);
+  if (kind === 'm') return money(v, 2);
+  if (kind === 'eq') return v === null ? 'No alcanza' : v.toLocaleString('en-US') + ' al mes';
+  return String(v);
+}
+function binds(p, c) {
+  const B = {};
+  p.mats.forEach(r => { B['mat:' + r.id] = ['u', c.matRows[r.id] || 0]; });
+  p.mod.forEach(r => { B['mod:' + r.id] = ['u', c.modRows[r.id] || 0]; });
+  p.cif.forEach(r => { const v = c.cifRows[r.id] || 0; B['cifM:' + r.id] = ['m', v]; B['cifU:' + r.id] = ['u', c.vol > 0 ? v / c.vol : 0]; });
+  p.gas.forEach(r => { const v = c.gasRows[r.id] || 0; B['gasM:' + r.id] = ['m', v]; B['gasU:' + r.id] = ['u', c.vol > 0 ? v / c.vol : 0]; });
+  Object.assign(B, {
+    md: ['u', c.md], mo: ['u', c.mo], primo: ['u', c.primo], cifU: ['u', c.cifU], prod: ['u', c.prod], gasU: ['u', c.gasU], total: ['u', c.total],
+    cifMes: ['m', c.cifMes], gasMes: ['m', c.gasMes], utilU: ['u', c.utilU], precio: ['m', c.precio], iva: ['m', c.iva], pvp: ['m', c.pvp],
+    utilMes: ['m', c.utilMes], equilibrio: ['eq', c.equilibrio]
+  });
+  return B;
+}
+function textos(p, c) {
+  const u = unidadDe(p);
+  const T = {
+    titulo: labelOf(p) + (p.ejemplo ? ' (ejemplo)' : ''), unidad: u,
+    utilLabel: 'Utilidad (' + (num(p.margen)).toLocaleString('en-US', { maximumFractionDigits: 2 }) + '% sobre el ' + (p.base === 'precio' ? 'precio' : 'costo') + ')',
+    ivaLabel: 'IVA (' + (num(p.iva)).toLocaleString('en-US', { maximumFractionDigits: 2 }) + '%)'
+  };
+  [['md', c.md], ['mo', c.mo], ['cifU', c.cifU], ['gasU', c.gasU]].forEach(x => { T['pct-' + x[0]] = c.total > 0 ? '· ' + pctTxt(x[1] / c.total) : ''; });
+  return T;
+}
+function lectura(p, c) {
+  if (c.total <= 0) return ['Registra tus costos para ver el resultado aquí.'];
+  const u = unidadDe(p), out = [];
+  if (!c.precioValido) return ['Con utilidad sobre el precio, el porcentaje debe ser menor a 100.'];
+  out.push('Cada ' + u + ' te cuesta ' + money(c.total, 4) + '. Si la vendes a ' + money(c.precio) + ' sin IVA, ganas ' + money(c.utilU) + ' por ' + u + ', que es ' + pctTxt(c.margenReal) + ' del precio. Con ' + c.vol.toLocaleString('en-US') + ' al mes, la utilidad mensual estimada es ' + money(c.utilMes) + '.');
+  if (c.fijos > 0) {
+    out.push(c.equilibrio === null
+      ? 'Con este precio no alcanzas a cubrir el costo variable por unidad (materiales y mano de obra), así que no hay punto de equilibrio. Sube el precio o reduce costos.'
+      : 'Necesitas vender al menos ' + c.equilibrio.toLocaleString('en-US') + ' al mes para cubrir los costos mensuales de ' + money(c.fijos) + '.');
+  }
+  if (c.utilActual !== null) {
+    out.push('Con tu precio actual de ' + money(c.actual) + ' (sin IVA) ' + (c.utilActual >= 0 ? 'ganas ' : 'pierdes ') + money(Math.abs(c.utilActual), 4) + ' por ' + u + '. El precio calculado es ' + money(c.precio) + '.');
+  }
+  return out;
+}
+function checks(p, c) {
+  const out = [], T = TIPOS[p.tipo], quien = p.tipo === 'servicio' ? 'servicio' : 'producto';
+  const add = (lvl, t) => out.push({ lvl: lvl, t: t });
+  if (!(p.nombre || '').trim()) add('warn', 'Ponle nombre al ' + quien + ' en el paso 1.');
+  if (!(state.meta.estudiante || '').trim()) add('warn', 'Escribe tu nombre en el paso 1: aparecerá en el Excel.');
+  if (num(p.volumen) <= 0) add('err', 'Falta ' + T.vol.toLowerCase() + ' (paso 1). Sin ese dato no se pueden repartir los costos mensuales.');
+  if (!p.mats.some(r => (c.matRows[r.id] || 0) > 0)) add('warn', 'No hay ' + (p.tipo === 'servicio' ? 'insumos' : 'materiales') + ' con valor. Si usas alguno, complétalo en el paso 2.');
+  p.mats.forEach(r => {
+    const n = (r.nombre || '').trim() || 'Fila sin nombre';
+    if (num(r.costo) > 0 && num(r.contenido) <= 0) add('err', '"' + n + '": indica el contenido de la compra (por ejemplo 50 si compraste 50 kg).');
+    else if (num(r.contenido) > 0 && num(r.costo) <= 0 && num(r.uso) > 0) add('warn', '"' + n + '": falta el costo de compra.');
+    else if (num(r.costo) > 0 && num(r.uso) <= 0) add('warn', '"' + n + '": indica cuánto se usa por unidad.');
+    if (num(r.merma) > 30) add('info', '"' + n + '": la merma es de ' + num(r.merma) + '%. Confirma que sea correcta.');
+  });
+  if (c.mo <= 0) add('warn', 'No registraste mano de obra. Si trabajas tú, valora tu tiempo (paso 3).');
+  p.mod.forEach(r => { if (num(r.horas) > 0 && num(r.costoHora) <= 0) add('warn', '"' + ((r.nombre || '').trim() || 'Fila sin nombre') + '": falta el costo por hora.'); });
+  [['cif', 'costos indirectos'], ['gas', 'gastos']].forEach(s => {
+    p[s[0]].forEach(r => {
+      const n = (r.nombre || '').trim() || 'Fila sin nombre';
+      if (num(r.pct) > 100) add('err', '"' + n + '": el porcentaje no puede pasar de 100.');
+      else if (num(r.valor) > 0 && num(r.pct) <= 0) add('warn', '"' + n + '": el porcentaje está en 0, así que no se carga nada a este ' + quien + '.');
+    });
+  });
+  if (c.cifMes + c.gasMes <= 0) add('info', 'No registraste costos indirectos ni gastos. Revisa si tienes arriendo, servicios básicos, depreciación o publicidad.');
+  if (p.base === 'precio' && num(p.margen) >= 100) add('err', 'Con utilidad sobre el precio, el porcentaje debe ser menor a 100.');
+  else if (num(p.margen) <= 0) add('warn', 'La utilidad deseada es 0%: estarías vendiendo al costo.');
+  if (c.utilActual !== null && c.utilActual < 0) add('warn', 'Tu precio actual está por debajo del costo total por unidad.');
+  if (c.equilibrio !== null && c.vol > 0 && c.equilibrio > c.vol) add('warn', 'El punto de equilibrio (' + c.equilibrio.toLocaleString('en-US') + ') supera tu volumen mensual (' + c.vol.toLocaleString('en-US') + '): con ese volumen pierdes.');
+  if (!out.length) add('ok', 'Todo registrado. Puedes descargar tu Excel.');
+  return out;
+}
+const TAGS = { err: 'Falta', warn: 'Revisa', info: 'Sugerencia', ok: 'Listo' };
+
+function refresh() {
+  const p = cur(), c = calc(p), B = binds(p, c), X = textos(p, c);
+  $$('[data-bind]').forEach(el => {
+    const b = B[el.dataset.bind];
+    if (!b) return;
+    el.textContent = fmtBind(b[0], b[1]);
+    el.classList.toggle('neg', typeof b[1] === 'number' && b[1] < -0.00005);
+  });
+  $$('[data-text]').forEach(el => { const t = X[el.dataset.text]; if (t != null) el.textContent = t; });
+  ['md', 'mo', 'cifU', 'gasU'].forEach(k => { const seg = $('[data-seg="' + k + '"]'); if (seg) seg.style.width = (c.total > 0 ? Math.max(c[k], 0) / c.total * 100 : 0) + '%'; });
+  const lec = $('#lectura'); if (lec) lec.innerHTML = lectura(p, c).map(t => '<p>' + esc(t) + '</p>').join('');
+  const ck = $('#checks'); if (ck) ck.innerHTML = checks(p, c).map(i => '<li><span class="tag ' + i.lvl + '">' + TAGS[i.lvl] + '</span><span>' + esc(i.t) + '</span></li>').join('');
+  state.products.forEach(q => { const el = $('[data-tablabel="' + q.id + '"]'); if (el) el.textContent = labelOf(q); });
+  $('#savednote').hidden = !storageOk;
+  scheduleSave();
+}
+
+function findRow(sec, id) { return cur()[sec].find(r => r.id === id); }
+function renderRows(sec) { const el = $('#rows-' + sec); if (el) el.innerHTML = rowsHTML(sec, cur()); refresh(); }
+const isBlank = r => Object.keys(r).every(k => k === 'id' || r[k] === '' || (k === 'pct' && r[k] === '100'));
+function pushRow(sec, row) {
+  const p = cur(), list = p[sec];
+  if (list.length && isBlank(list[list.length - 1])) list.pop();
+  list.push(row);
+  renderRows(sec);
+}
+
+function helperNum(h, f) { const el = h.querySelector('[data-f="' + f + '"]'); return el ? num(el.value) : 0; }
+function helperResult(h) {
+  if (h.dataset.helper === 'hora') { const horas = helperNum(h, 'horas'); return horas > 0 ? helperNum(h, 'mes') / horas : 0; }
+  const anios = helperNum(h, 'anios');
+  return anios > 0 ? Math.max(helperNum(h, 'valor') - helperNum(h, 'residual'), 0) / (anios * 12) : 0;
+}
+function updateHelper(h) { const v = helperResult(h); h.querySelector('output[data-f="out"]').textContent = h.dataset.helper === 'hora' ? money(v, 4) : money(v, 2); }
+
+// ---------- Descarga ----------
+function exportList() { const reales = state.products.filter(p => !p.ejemplo); return reales.length ? reales : state.products; }
+function slug(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40); }
+function setMsg(t, bad) { $$('.dlmsg').forEach(el => { el.textContent = t; el.classList.toggle('bad', !!bad); }); }
+async function descargar() {
+  if (typeof ExcelJS === 'undefined') { setMsg('No se pudo cargar el generador de Excel. Revisa tu conexión y recarga la página.', true); return; }
+  setMsg('Preparando el Excel…');
+  $$('[data-act="download"]').forEach(b => { b.disabled = true; });
+  try {
+    const lista = exportList();
+    const wb = buildWorkbook(ExcelJS, state.meta, lista, new Date());
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const nombre = 'Costeo_' + (slug(state.meta.estudiante) || slug(state.meta.negocio) || slug(labelOf(lista[0])) || 'proyecto') + '.xlsx';
+    let dl = null;
+    try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { dl = null; }
+    if (dl) {
+      await dl.save({ filename: nombre, data: blob });
+      setMsg('Listo: se guardó ' + nombre + (lista.length === 1 && lista[0].ejemplo ? ' con el ejemplo.' : '.'));
+    } else {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
+      setMsg('Si la descarga no empieza, abre esta página directamente en claude.ai e inténtalo de nuevo.');
+    }
+  } catch (e) {
+    const code = e && e.code;
+    if (code === 'declined') setMsg('Cancelaste la descarga. Puedes intentarlo otra vez cuando quieras.');
+    else if (code === 'rate_limited') setMsg('Ya hay una descarga pendiente. Respóndela y vuelve a intentar.', true);
+    else setMsg('No se pudo generar el Excel. Recarga la página e inténtalo de nuevo.', true);
+  } finally {
+    $$('[data-act="download"]').forEach(b => { b.disabled = false; });
+  }
+}
+
+// ---------- Eventos ----------
+function onField(t) {
+  const h = t.closest('[data-helper]');
+  if (h) { updateHelper(h); return; }
+  const row = t.closest('[data-sec]');
+  if (row && t.dataset.k) { const r = findRow(row.dataset.sec, row.dataset.id); if (r) r[t.dataset.k] = t.value; }
+  else if (t.dataset.p) cur()[t.dataset.p] = t.value;
+  else if (t.dataset.m) state.meta[t.dataset.m] = t.value;
+  else return;
+  refresh();
+}
+document.addEventListener('input', e => onField(e.target));
+document.addEventListener('change', e => { if (e.target.matches('select[data-p]')) onField(e.target); });
+
+let pendingDel = null, pendingTimer = 0;
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-act],[data-add],[data-del],[data-tab],[data-tipo],[data-goto]');
+  if (!t) return;
+  const p = cur();
+  if (t.dataset.goto) {
+    e.preventDefault();
+    const el = document.getElementById(t.dataset.goto);
+    if (el) el.scrollIntoView({ block: 'start' });
+    return;
+  }
+  if (t.dataset.tab) { state.active = t.dataset.tab; pendingDel = null; renderAll(); return; }
+  if (t.dataset.tipo) { if (p.tipo !== t.dataset.tipo) { p.tipo = t.dataset.tipo; renderMain(); refresh(); } return; }
+  if (t.dataset.add) {
+    const sec = t.dataset.add;
+    const row = sec === 'mats' ? blankMat() : sec === 'mod' ? blankMod() : blankMes();
+    p[sec].push(row); renderRows(sec);
+    const first = document.querySelector('[data-id="' + row.id + '"] input'); if (first) first.focus();
+    return;
+  }
+  if (t.dataset.del) {
+    const parts = t.dataset.del.split(':');
+    p[parts[0]] = p[parts[0]].filter(r => r.id !== parts[1]);
+    renderRows(parts[0]);
+    return;
+  }
+  switch (t.dataset.act) {
+    case 'download': descargar(); break;
+    case 'newprod': { const n = blankProduct(); state.products.push(n); state.active = n.id; renderAll(); window.scrollTo(0, 0); break; }
+    case 'loadexample': { const ex = exampleProduct(); state.products.push(ex); state.active = ex.id; renderAll(); break; }
+    case 'clearexample': {
+      state.products = state.products.filter(q => !q.ejemplo);
+      if (!state.products.length) state.products.push(blankProduct());
+      state.active = state.products[0].id; renderAll(); break;
+    }
+    case 'delprod':
+      if (pendingDel === p.id) {
+        state.products = state.products.filter(q => q.id !== p.id);
+        if (!state.products.length) state.products.push(blankProduct());
+        state.active = state.products[0].id; pendingDel = null; renderAll(); window.scrollTo(0, 0);
+      } else {
+        pendingDel = p.id; t.textContent = 'Toca otra vez para eliminar';
+        clearTimeout(pendingTimer);
+        pendingTimer = setTimeout(() => { pendingDel = null; if (t.isConnected) t.textContent = 'Eliminar este ' + (p.tipo === 'servicio' ? 'servicio' : 'producto'); }, 4000);
+      }
+      break;
+    case 'helper-add': {
+      const h = t.closest('[data-helper]'), v = helperResult(h);
+      if (h.dataset.helper === 'hora') {
+        const cargo = h.querySelector('[data-f="cargo"]').value;
+        pushRow('mod', blankMod({ nombre: cargo, costoHora: v > 0 ? String(Math.round(v * 10000) / 10000) : '' }));
+      } else {
+        const act = h.querySelector('[data-f="activo"]').value.trim();
+        pushRow('cif', blankMes({ nombre: 'Depreciación' + (act ? ' de ' + act : ''), valor: v > 0 ? String(Math.round(v * 100) / 100) : '', pct: '100' }));
+      }
+      break;
+    }
+  }
+});
+
+renderAll();
+</script>
+
+</body></html>
